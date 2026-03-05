@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="EyeGuide - AI-powered real-time accessibility companion for visually impaired users">
+    <meta name="theme-color" content="#1a1a2e">
+    
+    <title>EyeGuide — Your AI Visual Companion</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👁️</text></svg>">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <!-- ─── Skip Navigation (Accessibility) ──────────────────────────────── -->
+    <a href="#main-action" class="skip-link" aria-label="Skip to main content">
+        Skip to main content
+    </a>
+
+    <!-- ─── App Container ────────────────────────────────────────────────── -->
+    <div id="app" class="app-container" role="application" aria-label="EyeGuide Application">
+        
+        <!-- ─── Header ───────────────────────────────────────────────────── -->
+        <header class="app-header" role="banner">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon" aria-hidden="true">👁️</span>
+                    <h1 class="logo-text">EyeGuide</h1>
+                </div>
+                <div class="connection-status" id="connectionStatus" role="status" aria-live="polite">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span class="status-text" id="statusText">Disconnected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ─── Main Content ─────────────────────────────────────────────── -->
+        <main class="app-main" role="main">
+            
+            <!-- ─── Camera View ──────────────────────────────────────────── -->
+            <section class="camera-section" aria-label="Camera view">
+                <div class="camera-container" id="cameraContainer">
+                    <video id="cameraPreview" autoplay playsinline muted 
+                           aria-label="Camera preview showing what EyeGuide sees"></video>
+                    <canvas id="cameraCanvas" style="display: none;"></canvas>
+                    
+                    <!-- Camera overlay when not active -->
+                    <div class="camera-overlay" id="cameraOverlay">
+                        <div class="overlay-content">
+                            <span class="overlay-icon" aria-hidden="true">📷</span>
+                            <p>Camera will activate when you start a session</p>
+                        </div>
+                    </div>
+
+                    <!-- Mode indicator -->
+                    <div class="mode-badge" id="modeBadge" aria-live="polite">
+                        <span class="mode-icon" id="modeIcon" aria-hidden="true">🧭</span>
+                        <span class="mode-name" id="modeName">Navigation</span>
+                    </div>
+
+                    <!-- Audio visualizer -->
+                    <div class="audio-indicator" id="audioIndicator" aria-hidden="true">
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ─── Transcript Panel ─────────────────────────────────────── -->
+            <section class="transcript-section" aria-label="Conversation transcript">
+                <div class="transcript-header">
+                    <h2>Conversation</h2>
+                    <button class="btn-icon" id="clearTranscriptBtn" 
+                            aria-label="Clear conversation transcript"
+                            title="Clear transcript">
+                        🗑️
+                    </button>
+                </div>
+                <div class="transcript-container" id="transcriptContainer" 
+                     role="log" aria-live="polite" aria-relevant="additions">
+                    <div class="transcript-welcome">
+                        <p>👋 Welcome to <strong>EyeGuide</strong>!</p>
+                        <p>Press the big button below to start. I'll use your camera to see 
+                           and your microphone to listen. Talk to me naturally!</p>
+                        <p class="transcript-hint">💡 Try saying: "What do you see?", 
+                           "Read that", or "Switch to reading mode"</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ─── Main Action Button ───────────────────────────────────── -->
+            <div class="action-section" id="main-action">
+                <button class="btn-main" id="startStopBtn" 
+                        aria-label="Start EyeGuide session"
+                        aria-pressed="false">
+                    <span class="btn-main-icon" id="startStopIcon" aria-hidden="true">🎙️</span>
+                    <span class="btn-main-text" id="startStopText">Start EyeGuide</span>
+                </button>
+            </div>
+
+            <!-- ─── Mode Selector ────────────────────────────────────────── -->
+            <nav class="mode-selector" aria-label="Operating mode selector">
+                <button class="mode-btn active" data-mode="navigation" 
+                        aria-label="Navigation mode - helps you move safely"
+                        aria-pressed="true">
+                    <span class="mode-btn-icon" aria-hidden="true">🧭</span>
+                    <span class="mode-btn-label">Navigate</span>
+                </button>
+                <button class="mode-btn" data-mode="reading" 
+                        aria-label="Reading mode - reads text for you"
+                        aria-pressed="false">
+                    <span class="mode-btn-icon" aria-hidden="true">📖</span>
+                    <span class="mode-btn-label">Read</span>
+                </button>
+                <button class="mode-btn" data-mode="exploration" 
+                        aria-label="Exploration mode - describes everything in detail"
+                        aria-pressed="false">
+                    <span class="mode-btn-icon" aria-hidden="true">🔍</span>
+                    <span class="mode-btn-label">Explore</span>
+                </button>
+                <button class="mode-btn" data-mode="shopping" 
+                        aria-label="Shopping mode - reads labels and prices"
+                        aria-pressed="false">
+                    <span class="mode-btn-icon" aria-hidden="true">🛒</span>
+                    <span class="mode-btn-label">Shop</span>
+                </button>
+            </nav>
+
+            <!-- ─── Text Input (Accessibility Fallback) ──────────────────── -->
+            <div class="text-input-section" aria-label="Text input fallback">
+                <form id="textInputForm" class="text-input-form">
+                    <label for="textInput" class="sr-only">Type a message to EyeGuide</label>
+                    <input type="text" id="textInput" class="text-input" 
+                           placeholder="Type a message (or just talk!)..."
+                           autocomplete="off"
+                           aria-label="Type a message to EyeGuide">
+                    <button type="submit" class="btn-send" aria-label="Send message">
+                        <span aria-hidden="true">➤</span>
+                    </button>
+                </form>
+            </div>
+        </main>
+
+        <!-- ─── Settings Panel (Hidden by default) ───────────────────────── -->
+        <aside class="settings-panel" id="settingsPanel" role="dialog" 
+               aria-label="Settings" aria-hidden="true">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h2>⚙️ Settings</h2>
+                    <button class="btn-close" id="closeSettingsBtn" aria-label="Close settings">✕</button>
+                </div>
+                
+                <div class="setting-group">
+                    <label for="verbositySelect">Verbosity Level</label>
+                    <select id="verbositySelect" aria-label="Choose how detailed descriptions are">
+                        <option value="brief">Brief — Short and quick</option>
+                        <option value="normal" selected>Normal — Balanced</option>
+                        <option value="detailed">Detailed — Rich descriptions</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label for="voiceSelect">Voice</label>
+                    <select id="voiceSelect" aria-label="Choose the agent's voice">
+                        <option value="Kore" selected>Kore (Warm, Calm)</option>
+                        <option value="Aoede">Aoede (Bright)</option>
+                        <option value="Charon">Charon (Deep)</option>
+                        <option value="Fenrir">Fenrir (Strong)</option>
+                        <option value="Puck">Puck (Playful)</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label for="cameraToggle">
+                        <input type="checkbox" id="cameraToggle" checked>
+                        Enable Camera
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label for="highContrastToggle">
+                        <input type="checkbox" id="highContrastToggle">
+                        High Contrast Mode
+                    </label>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ─── Settings Toggle Button ───────────────────────────────────── -->
+        <button class="btn-settings" id="settingsBtn" aria-label="Open settings">
+            ⚙️
+        </button>
+    </div>
+
+    <!-- ─── Scripts ──────────────────────────────────────────────────────── -->
+    <script src="/static/js/audio.js"></script>
+    <script src="/static/js/camera.js"></script>
+    <script src="/static/js/websocket.js"></script>
+    <script src="/static/js/ui.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

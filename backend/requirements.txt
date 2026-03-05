@@ -1,0 +1,18 @@
+# EyeGuide Backend Dependencies
+
+# Google ADK (Agent Development Kit)
+google-adk>=0.5.0
+
+# Google GenAI SDK
+google-genai>=1.0.0
+
+# Google Cloud Firestore
+google-cloud-firestore>=2.19.0
+
+# Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+websockets>=14.0
+
+# Utilities
+python-dotenv>=1.0.0
