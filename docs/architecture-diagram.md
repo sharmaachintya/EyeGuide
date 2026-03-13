@@ -1,9 +1,7 @@
 # 🏗️ EyeGuide Architecture Diagram
 
-> [draw.io](https://app.diagrams.net/), [Excalidraw](https://excalidraw.com/), 
-> or [Mermaid](https://mermaid.live/).
 
-## Text-Based Architecture (for reference)
+## Text-Based Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -103,11 +101,3 @@
 4. **Gemini responds** → Audio + text → Server → WebSocket → Client plays audio + shows transcript
 5. **User interrupts (barge-in)** → Gemini detects → Stops generating → Responds to new input
 6. **Agent uses tools** → Firestore reads/writes → Results inform agent response
-
-## To Create a Polished Diagram
-
-1. Go to [draw.io](https://app.diagrams.net/) or [Excalidraw](https://excalidraw.com/)
-2. Use the text diagram above as reference
-3. Include Google Cloud logos for: Cloud Run, Vertex AI, Firestore, Cloud Build
-4. Show data flow arrows with labels (audio, video, WebSocket)
-5. Export as PNG and save as `docs/architecture-diagram.png`
