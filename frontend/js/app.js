@@ -116,6 +116,8 @@ class EyeGuideApp {
             this.currentAgentText += text;
             // Display in transcript
             this.ui.addTranscriptMessage(text, 'agent');
+            // Detect mode switches from agent's voice response
+            this._detectModeFromTranscript(text);
         };
         
         this.ws.onTurnComplete = () => {
@@ -138,6 +140,11 @@ class EyeGuideApp {
         
         this.ws.onToolCall = (toolName) => {
             console.log(`🔧 Tool called: ${toolName}`);
+        };
+        
+        this.ws.onUserTranscript = (text) => {
+            // Show what the user said (transcribed from audio)
+            this.ui.addTranscriptMessage(text, 'user');
         };
         
         this.ws.onError = (message) => {
@@ -252,6 +259,33 @@ class EyeGuideApp {
         
         this.ui.addTranscriptMessage('Session ended', 'system');
         console.log('⏹️ EyeGuide session stopped');
+    }
+    
+    /**
+     * Detect mode switches from the agent's transcript text.
+     * When the agent confirms a mode switch verbally, update the UI buttons.
+     * @param {string} text - Transcript text from the agent
+     */
+    _detectModeFromTranscript(text) {
+        const lowerText = text.toLowerCase();
+        
+        const modeKeywords = {
+            'navigation': ['navigation mode', 'navigate mode', 'navigating', 'switched to navigation'],
+            'reading': ['reading mode', 'read mode', 'switched to reading'],
+            'exploration': ['exploration mode', 'explore mode', 'exploring', 'switched to exploration'],
+            'shopping': ['shopping mode', 'shop mode', 'switched to shopping'],
+        };
+        
+        for (const [mode, keywords] of Object.entries(modeKeywords)) {
+            if (keywords.some(kw => lowerText.includes(kw))) {
+                // Only switch if it's a different mode
+                if (this.ui.currentMode !== mode) {
+                    console.log(`🔄 Voice mode switch detected: ${mode}`);
+                    this.ui.setMode(mode);
+                }
+                break;
+            }
+        }
     }
 }
 

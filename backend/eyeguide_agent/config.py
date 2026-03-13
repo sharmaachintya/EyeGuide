@@ -3,7 +3,7 @@
 import os
 
 # ─── Model Configuration ────────────────────────────────────────────────────
-GEMINI_LIVE_MODEL = os.getenv("GEMINI_LIVE_MODEL", "gemini-2.0-flash-live-001")
+GEMINI_LIVE_MODEL = os.getenv("GEMINI_LIVE_MODEL", "gemini-2.5-flash-native-audio-latest")
 
 # ─── Agent Configuration ────────────────────────────────────────────────────
 AGENT_NAME = "eyeguide"

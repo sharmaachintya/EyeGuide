@@ -14,16 +14,23 @@ import logging
 import os
 import uuid
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (explicitly from this script's directory)
+_env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+load_dotenv(_env_path)
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from google.adk.runners import Runner
+from google.adk.runners import Runner, RunConfig
 from google.adk.sessions import InMemorySessionService
 from google.adk.agents.live_request_queue import LiveRequestQueue
+from google.adk.agents.run_config import StreamingMode
 from google.genai import types
+from google.genai.types import Modality
 
 from eyeguide_agent.agent import eyeguide_agent
 from eyeguide_agent.config import (
@@ -186,9 +193,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str = None):
     })
 
     try:
-        # Configure Live API response modalities
-        live_config = types.LiveConnectConfig(
-            response_modalities=["AUDIO"],
+        # Configure ADK RunConfig for live streaming
+        run_config = RunConfig(
+            streaming_mode=StreamingMode.BIDI,
+            response_modalities=[Modality.AUDIO],
             speech_config=types.SpeechConfig(
                 voice_config=types.VoiceConfig(
                     prebuilt_voice_config=types.PrebuiltVoiceConfig(
@@ -202,7 +210,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str = None):
         live_events = runner.run_live(
             session=session,
             live_request_queue=live_queue,
-            config=live_config,
+            run_config=run_config,
         )
 
         # ─── Task 1: Receive data from client → feed to agent ────────────
@@ -273,13 +281,19 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str = None):
             """Receive responses from the agent and send them to the WebSocket client."""
             try:
                 async for event in live_events:
-                    # Handle model turn (audio/text responses)
-                    if event.server_content and event.server_content.model_turn:
-                        for part in event.server_content.model_turn.parts:
-                            if part.inline_data:
+                    # Safe attribute access for Event fields
+                    content = getattr(event, 'content', None)
+                    turn_complete = getattr(event, 'turnComplete', None) or getattr(event, 'turn_complete', None)
+                    is_interrupted = getattr(event, 'interrupted', None)
+                    actions = getattr(event, 'actions', None)
+                    
+                    # Handle content (audio/text responses from the model)
+                    if content and hasattr(content, 'parts') and content.parts:
+                        for part in content.parts:
+                            if hasattr(part, 'inline_data') and part.inline_data:
                                 # Audio response — send as binary
                                 await websocket.send_bytes(part.inline_data.data)
-                            elif part.text:
+                            elif hasattr(part, 'text') and part.text:
                                 # Text response — send as JSON
                                 await websocket.send_json({
                                     "type": "transcript",
@@ -287,26 +301,43 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str = None):
                                 })
                     
                     # Handle turn completion
-                    if event.server_content and event.server_content.turn_complete:
+                    if turn_complete:
                         await websocket.send_json({
                             "type": "turn_complete",
                         })
                     
                     # Handle interruption (barge-in)
-                    if event.server_content and event.server_content.interrupted:
+                    if is_interrupted:
                         await websocket.send_json({
                             "type": "interrupted",
                             "message": "Response interrupted by user",
                         })
                         logger.info(f"🔇 Barge-in detected: session={session_id}")
                     
-                    # Handle tool calls/results
-                    if hasattr(event, "actions") and event.actions:
-                        for action in event.actions.actions:
-                            if hasattr(action, "function_call"):
+                    # Handle output audio transcription (what the AI said, as text)
+                    out_transcription = getattr(event, 'outputTranscription', None)
+                    if out_transcription and hasattr(out_transcription, 'text') and out_transcription.text:
+                        await websocket.send_json({
+                            "type": "transcript",
+                            "text": out_transcription.text,
+                        })
+                    
+                    # Handle input audio transcription (what the user said, as text)
+                    in_transcription = getattr(event, 'inputTranscription', None)
+                    if in_transcription and hasattr(in_transcription, 'text') and in_transcription.text:
+                        await websocket.send_json({
+                            "type": "user_transcript",
+                            "text": in_transcription.text,
+                        })
+                    
+                    # Handle tool calls
+                    if actions and hasattr(actions, 'actions') and actions.actions:
+                        for action in actions.actions:
+                            fc = getattr(action, 'function_call', None)
+                            if fc:
                                 await websocket.send_json({
                                     "type": "tool_call",
-                                    "tool": action.function_call.name,
+                                    "tool": fc.name,
                                 })
 
             except WebSocketDisconnect:

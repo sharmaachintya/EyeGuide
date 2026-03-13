@@ -20,6 +20,7 @@ class WebSocketManager {
         this.onDisconnected = null;
         this.onAudioResponse = null;     // Binary audio data from agent
         this.onTranscript = null;        // Text transcript from agent
+        this.onUserTranscript = null;    // Text transcript of user's speech
         this.onTurnComplete = null;      // Agent finished speaking
         this.onInterrupted = null;       // Agent was interrupted (barge-in)
         this.onSessionInfo = null;       // Session info from server
@@ -173,6 +174,10 @@ class WebSocketManager {
                 case 'session_info':
                     this.sessionId = data.session_id || this.sessionId;
                     if (this.onSessionInfo) this.onSessionInfo(data);
+                    break;
+                    
+                case 'user_transcript':
+                    if (this.onUserTranscript) this.onUserTranscript(data.text);
                     break;
                     
                 case 'tool_call':
