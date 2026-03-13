@@ -1,6 +1,5 @@
 # 🏗️ EyeGuide Architecture Diagram
 
-> **Note**: Replace this file with a polished PNG/SVG diagram created using 
 > [draw.io](https://app.diagrams.net/), [Excalidraw](https://excalidraw.com/), 
 > or [Mermaid](https://mermaid.live/).
 
