@@ -20,11 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend source code
+# Copy backend source code (including static/ if present)
 COPY . .
-
-# Copy frontend into static directory for serving
-COPY ../frontend ./static/ 2>/dev/null || true
 
 # Expose port
 EXPOSE 8080
