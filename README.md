@@ -94,7 +94,7 @@
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
-| **AI Model** | Gemini 2.0 Flash (Live API) | Real-time multimodal understanding |
+| **AI Model** | Gemini 2.5 Flash Native Audio (Live API) | Real-time multimodal understanding |
 | **Agent Framework** | Google ADK (Python) | Agent orchestration & tool management |
 | **Backend** | Python + FastAPI | WebSocket server for real-time streaming |
 | **Frontend** | HTML/CSS/JavaScript | Accessible web interface |
