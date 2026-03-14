@@ -20,10 +20,10 @@ class AudioManager {
         this.workletNode = null;
         this.sourceNode = null;
         
-        // Playback
-        this.playbackQueue = [];
-        this.isPlaying = false;
+        // Playback — gapless scheduling
         this.playbackContext = null;
+        this.nextPlayTime = 0;     // Scheduled time for next chunk
+        this.isPlaybackActive = false;
         
         // Callbacks
         this.onAudioData = null;    // Called with PCM audio data chunks
@@ -130,17 +130,57 @@ class AudioManager {
     }
     
     /**
-     * Play received audio data (PCM 16-bit, 24kHz).
-     * Queues audio chunks for gapless playback.
+     * Play received audio data (PCM 16-bit, 24kHz) with gapless scheduling.
+     * Each chunk is scheduled to start exactly when the previous one ends,
+     * eliminating gaps and crackling between chunks.
      * @param {ArrayBuffer} pcmData - Raw PCM audio data
      */
     async playAudio(pcmData) {
-        // Add to queue
-        this.playbackQueue.push(pcmData);
-        
-        // Start playing if not already
-        if (!this.isPlaying) {
-            this._processPlaybackQueue();
+        try {
+            // Create playback context if needed
+            if (!this.playbackContext || this.playbackContext.state === 'closed') {
+                this.playbackContext = new AudioContext({
+                    sampleRate: this.outputSampleRate,
+                });
+                this.nextPlayTime = 0;
+            }
+            
+            // Resume context if suspended (browser autoplay policy)
+            if (this.playbackContext.state === 'suspended') {
+                await this.playbackContext.resume();
+            }
+            
+            // Convert Int16 PCM to Float32
+            const float32Data = this._int16ToFloat32(new Int16Array(pcmData));
+            
+            // Create audio buffer
+            const audioBuffer = this.playbackContext.createBuffer(
+                1, float32Data.length, this.outputSampleRate
+            );
+            audioBuffer.getChannelData(0).set(float32Data);
+            
+            // Create source and connect
+            const source = this.playbackContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(this.playbackContext.destination);
+            
+            // Schedule gapless playback:
+            // If nextPlayTime is in the past, start now + tiny buffer
+            const currentTime = this.playbackContext.currentTime;
+            if (this.nextPlayTime < currentTime) {
+                this.nextPlayTime = currentTime + 0.01; // 10ms buffer
+            }
+            
+            // Start at exactly the scheduled time
+            source.start(this.nextPlayTime);
+            
+            // Schedule next chunk right after this one ends
+            this.nextPlayTime += audioBuffer.duration;
+            
+            this.isPlaybackActive = true;
+            
+        } catch (error) {
+            console.error('Playback error:', error);
         }
     }
     
@@ -148,8 +188,8 @@ class AudioManager {
      * Stop audio playback immediately (for barge-in support).
      */
     stopPlayback() {
-        this.playbackQueue = [];
-        this.isPlaying = false;
+        this.isPlaybackActive = false;
+        this.nextPlayTime = 0;
         
         if (this.playbackContext) {
             this.playbackContext.close();
@@ -157,52 +197,6 @@ class AudioManager {
         }
         
         console.log('🔇 Audio playback stopped (barge-in)');
-    }
-    
-    /**
-     * Process the playback queue - plays chunks sequentially.
-     */
-    async _processPlaybackQueue() {
-        if (this.isPlaying) return;
-        this.isPlaying = true;
-        
-        // Create playback context if needed
-        if (!this.playbackContext || this.playbackContext.state === 'closed') {
-            this.playbackContext = new AudioContext({
-                sampleRate: this.outputSampleRate,
-            });
-        }
-        
-        while (this.playbackQueue.length > 0) {
-            const pcmData = this.playbackQueue.shift();
-            
-            try {
-                // Convert Int16 PCM to Float32
-                const float32Data = this._int16ToFloat32(new Int16Array(pcmData));
-                
-                // Create audio buffer
-                const audioBuffer = this.playbackContext.createBuffer(
-                    1, float32Data.length, this.outputSampleRate
-                );
-                audioBuffer.getChannelData(0).set(float32Data);
-                
-                // Play the buffer
-                const source = this.playbackContext.createBufferSource();
-                source.buffer = audioBuffer;
-                source.connect(this.playbackContext.destination);
-                
-                // Wait for playback to complete
-                await new Promise((resolve) => {
-                    source.onended = resolve;
-                    source.start();
-                });
-                
-            } catch (error) {
-                console.error('Playback error:', error);
-            }
-        }
-        
-        this.isPlaying = false;
     }
     
     /**
